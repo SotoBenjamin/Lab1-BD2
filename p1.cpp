@@ -1,6 +1,10 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+
+
+
+
 using namespace std;
 #define end "\n"
 
@@ -35,7 +39,19 @@ private:
     string filename;
     TYPE type;
 
+
+
 public:
+
+    bool filexist(string f){
+        ifstream file(f);
+
+        bool ans = file.good();
+
+        file.close();    
+
+        return ans;
+    }
 
     int get_header(){
         ifstream infile(filename , ios::binary);
@@ -53,20 +69,34 @@ public:
     
 
     FixedRecord(string filename , TYPE type){
-        ofstream f(filename , ios::out | ios::binary);
+        bool exist = filexist(filename);
+        
+
         this->filename = filename;
         this->type = type;
+      
         if( this->type == MOVE_TO_LAST ){
-            int sz_i = 0;
-            f.write((char*)& sz_i , sizeof(Alumno));
-            f.close(); 
+            if(!exist){
+                int sz_i = 0;
+                ofstream f(filename , ios::out | ios::binary);
+
+                f.write((char*)& sz_i , sizeof(Alumno));
+                f.close();
+            }
+            
             
         }
         else{
-            int sz_i = -1;
-            f.write((char*)& sz_i , sizeof(Alumno) + sizeof(int));
-            f.close(); 
+            if(!exist){
+                int sz_i = -1;
+                 ofstream f(filename , ios::out | ios::binary);
+
+                f.write((char*)& sz_i , sizeof(Alumno) + sizeof(int));
+                f.close();
+            }
+            
         }
+        
     }
 
     void Add(Alumno& record){
@@ -91,15 +121,13 @@ public:
             
 
             if( head != -1){
-                fstream file(filename , ios::in | ios::out | ios::binary);
+                fstream file(filename , ios::in | ios::out | ios::binary );
                 file.seekg(head*(sizeof(Alumno) + sizeof(int)), ios::beg  );
                 Alumno temp{};
                 int next;
                 int x = 0;
                 file.read((char*)&temp , sizeof(temp));
                 file.read((char*)&next , sizeof(next));
-                cout<<"Este es el next"<<next<<end;
-                cout<<"Este es el head"<<head<<endl;
                 file.seekg(head*( sizeof(Alumno) + sizeof(int) )  , ios::beg  );
                 file.write((char*)&record , sizeof(record));
                 file.write((char*)&x , sizeof(x));
@@ -117,11 +145,18 @@ public:
         }
     }
 
-    void DeleteRecord(int i){
+    bool DeleteRecord(int i){
+        i++;
         if( type == MOVE_TO_LAST){
-            fstream file(filename , ios::in | ios::out | ios::binary);
+            fstream file(filename , ios::in | ios::out | ios::binary );
             Alumno al1;
             int sz = get_header();
+
+            if( sz == 0) return false;
+
+            
+            if( i < 1 || i > sz) return false;
+
             file.seekg( sz*sizeof(Alumno) , ios::beg);
 
             file.read((char*)&al1 , sizeof(al1));
@@ -137,14 +172,21 @@ public:
             file.write((char*)&sz , sizeof(Alumno));
 
             file.close();
+
+            return true;
         }
         else{
-            fstream file(filename , ios::in | ios::out | ios::binary);
+            fstream file(filename , ios::in | ios::out | ios::binary );
             int head = get_header();
-            Alumno temp{"A001", "Ana", "Perez", "INF", 1, 1200.50};
             int pos = i;
-            file.seekg( pos*( sizeof(Alumno) + sizeof(int) )  , ios::beg  );
-            file.write((char*)&temp , sizeof(temp));
+            int next;
+            file.seekg( pos*( sizeof(Alumno) + sizeof(int) ) + sizeof(Alumno)  , ios::beg  );
+            file.read((char*)&next , sizeof(next));
+
+            if( next != 0 ) return false;
+            
+            file.seekg(pos*( sizeof(Alumno) + sizeof(int) ) + sizeof(Alumno) , ios::beg );
+
             file.write((char*)&head  , sizeof(head));
             
             file.seekg(0 , ios::beg);
@@ -152,20 +194,31 @@ public:
             file.write( (char*)&pos, sizeof(pos) + sizeof(int) );
 
             file.close();
+
+            return true;
         }
     }
 
     Alumno readRecord(int pos){
         Alumno al{};
+        pos++;
         if( type == MOVE_TO_LAST){
-            fstream file(filename , ios::in | ios::out | ios::binary);
+            fstream file(filename , ios::in | ios::out | ios::binary );
             file.seekg(pos*sizeof(al) , ios::beg);
 
             file.write((char*)&al , sizeof(al));
             file.close();
         }
 
+        else{
+            fstream file(filename , ios::in | ios::out | ios::binary );
+            int x;
+            file.seekg(pos*(sizeof(al) + sizeof(int)) , ios::beg);
+            file.read((char*)&al , sizeof(al));
+            file.read((char*)&x , sizeof(x));
 
+            if( x != 0) al = Alumno{};
+        }
 
         return al;
     }
@@ -176,7 +229,7 @@ public:
         if( type == MOVE_TO_LAST){
             
             int n = get_header();
-            fstream file(filename , ios::in | ios::out | ios::binary);
+            fstream file(filename , ios::in | ios::out | ios::binary | ios::app);
             file.seekg(1*sizeof(Alumno) , ios::beg);
             int i = 1;
             while(1){
@@ -190,7 +243,7 @@ public:
            
         }
         else{
-            fstream file(filename , ios::in | ios::out | ios::binary);
+            fstream file(filename , ios::in | ios::out | ios::binary | ios:: app);
             file.seekg(1*(sizeof(Alumno) + sizeof(int)) , ios::beg );
             while(1){
                 Alumno a1{};
@@ -213,25 +266,12 @@ public:
 
 
 
+
+
 void test1(){
     FixedRecord fr("data.bin" , MOVE_TO_LAST);
     
-    Alumno alumnos[10] = {
-        {"A001", "Ana", "Perez", "INF", 1, 1200.50},
-        {"A002", "Luis", "Gomez", "ADM", 2, 1100.00},
-        {"A003", "Mia", "Lopez", "DER", 3, 1300.75},
-        {"A004", "Juan", "Diaz", "MED", 4, 1400.25},
-        {"A005", "Sara", "Mora", "PSI", 1, 1250.00},
-        {"A006", "Leo", "Vega", "ARQ", 2, 1350.45},
-        {"A007", "Rita", "Solis", "CIV", 3, 1450.60},
-        {"A008", "Tito", "Luna", "IND", 4, 1550.20},
-        {"A009", "Lola", "Nuez", "INF", 1, 1150.30},
-        {"A010", "Paco", "Rio", "ADM", 2, 1050.90}
-    };
-
-    for(int i = 0; i < 10; i++) {
-        fr.Add(alumnos[i]);
-    }
+    
 
     vector<Alumno> v_al = fr.load();
     
@@ -266,7 +306,8 @@ void test1(){
 }
 
 
-void test2(){
+
+void addfree(){
     FixedRecord fr("data.bin" , FREE_LIST);
     Alumno alumnos[10] = {
         {"A001", "Ana", "Perez", "INF", 1, 1200.50},
@@ -284,7 +325,44 @@ void test2(){
     for(int i = 0; i < 10; i++) {
         fr.Add(alumnos[i]);
     }
-    
+
+    vector<Alumno> v = fr.load();
+
+    for(auto al : v){
+        al.print();
+    }
+
+}
+
+void addMoveLast(){
+    FixedRecord fr("data.bin" , MOVE_TO_LAST);
+    Alumno alumnos[10] = {
+        {"A001", "Ana", "Perez", "INF", 1, 1200.50},
+        {"A002", "Luis", "Gomez", "ADM", 2, 1100.00},
+        {"A003", "Mia", "Lopez", "DER", 3, 1300.75},
+        {"A004", "Juan", "Diaz", "MED", 4, 1400.25},
+        {"A005", "Sara", "Mora", "PSI", 1, 1250.00},
+        {"A006", "Leo", "Vega", "ARQ", 2, 1350.45},
+        {"A007", "Rita", "Solis", "CIV", 3, 1450.60},
+        {"A008", "Tito", "Luna", "IND", 4, 1550.20},
+        {"A009", "Lola", "Nuez", "INF", 1, 1150.30},
+        {"A010", "Paco", "Rio", "ADM", 2, 1050.90}
+    };
+
+    for(int i = 0; i < 10; i++) {
+        fr.Add(alumnos[i]);
+    }
+
+    vector<Alumno> v = fr.load();
+
+    for(auto al : v){
+        al.print();
+    }
+}
+
+void test2(){
+    FixedRecord fr("data.bin" , FREE_LIST);
+     
     vector<Alumno> v_al = fr.load();
     
     for(int i = 0; i < v_al.size(); i++) {
@@ -340,13 +418,15 @@ void test2(){
     cout<<"El head es : "<<fr.get_header()<<end;
 
     
+    
 }
 
 
 
 int main() {
+    //addMoveLast();
+    test1();
     
-    test2();
     
     return 0;
 }
