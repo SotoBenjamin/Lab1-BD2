@@ -88,23 +88,27 @@ public:
         }
         else{
             int head = get_header();
-            fstream file(filename , ios::in | ios::out | ios::binary | ios::app);
+            
+
             if( head != -1){
-                file.seekg(head*(sizeof(Alumno) + sizeof(int)) + sizeof(Alumno)  , ios::beg  );
+                fstream file(filename , ios::in | ios::out | ios::binary);
+                file.seekg(head*(sizeof(Alumno) + sizeof(int)), ios::beg  );
+                Alumno temp{};
                 int next;
                 int x = 0;
+                file.read((char*)&temp , sizeof(temp));
                 file.read((char*)&next , sizeof(next));
-                file.seekg(head*(sizeof(Alumno) + sizeof(int))  , ios::beg  );
+                cout<<"Este es el next"<<next<<end;
+                cout<<"Este es el head"<<head<<endl;
+                file.seekg(head*( sizeof(Alumno) + sizeof(int) )  , ios::beg  );
                 file.write((char*)&record , sizeof(record));
                 file.write((char*)&x , sizeof(x));
-                head = next;
-
                 file.seekg(0 , ios::beg);
-                file.write((char*)&x , sizeof(x) + sizeof(Alumno));
-
-                file.close();  
+                file.write((char*)&next , sizeof(next) + sizeof(Alumno));
+                file.close();          
             }
             else{
+                fstream file(filename , ios::in | ios::out | ios::binary | ios::app);
                 int x = 0;
                 file.write((char*)&record , sizeof(record));
                 file.write((char*)&x , sizeof(x));
@@ -137,11 +141,15 @@ public:
         else{
             fstream file(filename , ios::in | ios::out | ios::binary);
             int head = get_header();
-            file.seekg( i*(sizeof(Alumno) + sizeof(int)) + sizeof(Alumno)  , ios::beg  );
+            Alumno temp{"A001", "Ana", "Perez", "INF", 1, 1200.50};
+            int pos = i;
+            file.seekg( pos*( sizeof(Alumno) + sizeof(int) )  , ios::beg  );
+            file.write((char*)&temp , sizeof(temp));
             file.write((char*)&head  , sizeof(head));
+            
             file.seekg(0 , ios::beg);
-            head = i;
-            file.write( (char*)&head , sizeof(head) + sizeof(int) );
+            
+            file.write( (char*)&pos, sizeof(pos) + sizeof(int) );
 
             file.close();
         }
@@ -295,7 +303,7 @@ void test2(){
         v_al[i].print();
     }
 
-    cout<<"El head de la lista es: "<<fr.get_header()<<end;
+    cout<<"El head es : "<<fr.get_header()<<end;
 
 
     pos = 3;
@@ -310,7 +318,26 @@ void test2(){
         v_al[i].print();
     }
 
-    cout<<"El head de la lista es: "<<fr.get_header()<<end;
+    
+    cout<<"El head es : "<<fr.get_header()<<end;
+
+
+    cout<<"Insertando un nuevo registro"<<end;
+
+    Alumno al3{"A011", "Eva", "Campos", "BIO", 1, 1175.80};
+
+    fr.Add(al3);
+
+    cout<<endl;
+
+
+    v_al = fr.load();
+    
+    for(int i = 0; i < v_al.size(); i++) {
+        v_al[i].print();
+    }
+
+    cout<<"El head es : "<<fr.get_header()<<end;
 
     
 }
